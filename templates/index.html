@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Signature Authenticator</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: #f5f4f0;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 48px 32px;
+    }
+
+    header {
+      max-width: 880px;
+      margin: 0 auto 40px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      border-bottom: 1.5px solid #1a1a1a;
+      padding-bottom: 16px;
+    }
+
+    header h1 {
+      font-size: 1.05rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      color: #888;
+      text-align: right;
+      line-height: 1.8;
+    }
+
+    .layout {
+      max-width: 880px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: #ccc;
+      border: 1.5px solid #1a1a1a;
+    }
+
+    .card {
+      background: #f5f4f0;
+      padding: 28px;
+    }
+
+    .card-full {
+      grid-column: 1 / -1;
+      border-top: 1px solid #ccc;
+    }
+
+    .card-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #999;
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      color: #666;
+      margin-bottom: 5px;
+      margin-top: 16px;
+    }
+
+    label:first-of-type { margin-top: 0; }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      background: #fff;
+      border: 1px solid #d0d0d0;
+      border-radius: 0;
+      color: #1a1a1a;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.82rem;
+      outline: none;
+      transition: border-color 0.1s;
+    }
+
+    input[type="text"]:focus { border-color: #1a1a1a; }
+
+    .drop-zone {
+      border: 1px dashed #bbb;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      color: #aaa;
+      font-size: 0.78rem;
+      font-family: 'IBM Plex Mono', monospace;
+      transition: border-color 0.1s, background 0.1s;
+      margin-top: 6px;
+    }
+
+    .drop-zone:hover { border-color: #888; color: #666; background: #eee; }
+    .drop-zone input { display: none; }
+
+    .file-list {
+      margin-top: 6px;
+      font-size: 0.7rem;
+      font-family: 'IBM Plex Mono', monospace;
+      color: #888;
+      word-break: break-all;
+    }
+
+    .btn {
+      margin-top: 20px;
+      width: 100%;
+      padding: 10px;
+      background: #1a1a1a;
+      color: #f5f4f0;
+      border: none;
+      border-radius: 0;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .btn:hover { background: #333; }
+    .btn:disabled { background: #ccc; color: #999; cursor: not-allowed; }
+
+    .btn-outline {
+      background: transparent;
+      color: #1a1a1a;
+      border: 1px solid #1a1a1a;
+      margin-top: 0;
+      width: auto;
+      padding: 7px 16px;
+    }
+
+    .btn-outline:hover { background: #1a1a1a; color: #f5f4f0; }
+
+    .result {
+      margin-top: 14px;
+      padding: 12px;
+      font-size: 0.78rem;
+      font-family: 'IBM Plex Mono', monospace;
+      display: none;
+      border-left: 3px solid transparent;
+      background: #eee;
+    }
+
+    .result.ok   { border-left-color: #2a7a2a; background: #f0f7f0; color: #1a4a1a; }
+    .result.fail { border-left-color: #a02020; background: #faf0f0; color: #4a1a1a; }
+    .result.info { border-left-color: #aaa;    background: #eee;    color: #555; }
+
+    .result-label { font-weight: 500; font-size: 0.85rem; margin-bottom: 5px; }
+    .result-meta  { opacity: 0.65; font-size: 0.72rem; line-height: 1.7; }
+
+    .meter {
+      margin-top: 10px;
+      height: 2px;
+      background: #ddd;
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      height: 100%;
+      transition: width 0.5s ease;
+    }
+
+    .users-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .user-tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border: 1px solid #ccc;
+      color: #555;
+      background: #fff;
+    }
+
+    .empty-msg {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      color: #bbb;
+    }
+
+    @media (max-width: 600px) {
+      .layout { grid-template-columns: 1fr; }
+      .card-full { grid-column: 1; }
+      header { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .meta { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Signature Authenticator</h1>
+    <div class="meta">
+      Siamese CNN &nbsp;·&nbsp; CEDAR dataset &nbsp;·&nbsp; 88.19% accuracy<br>
+      PyTorch &nbsp;·&nbsp; Flask &nbsp;·&nbsp; Python 3.11
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <div class="card">
+      <div class="card-title">Enroll user</div>
+
+      <label>User ID</label>
+      <input type="text" id="enroll-uid" placeholder="e.g. john_doe"/>
+
+      <label>Reference signatures (min. 2)</label>
+      <div class="drop-zone" onclick="document.getElementById('enroll-files').click()">
+        click to upload images
+        <input type="file" id="enroll-files" multiple accept="image/*"
+               onchange="showFiles('enroll-files','enroll-list')"/>
+      </div>
+      <div class="file-list" id="enroll-list"></div>
+
+      <button class="btn" onclick="enroll()">Enroll</button>
+      <div class="result" id="enroll-result"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Verify signature</div>
+
+      <label>User ID</label>
+      <input type="text" id="verify-uid" placeholder="e.g. john_doe"/>
+
+      <label>Query signature</label>
+      <div class="drop-zone" onclick="document.getElementById('verify-file').click()">
+        click to upload image
+        <input type="file" id="verify-file" accept="image/*"
+               onchange="showFiles('verify-file','verify-list')"/>
+      </div>
+      <div class="file-list" id="verify-list"></div>
+
+      <button class="btn" onclick="verify()">Verify</button>
+      <div class="result" id="verify-result"></div>
+    </div>
+
+    <div class="card card-full">
+      <div class="card-title">Enrolled users</div>
+      <div class="users-row">
+        <button class="btn btn-outline" onclick="loadUsers()">Refresh</button>
+        <div id="users-output"><span class="empty-msg">loading...</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function showFiles(inputId, listId) {
+      const files = document.getElementById(inputId).files;
+      document.getElementById(listId).textContent =
+        Array.from(files).map(f => f.name).join('  ·  ');
+    }
+
+    function showResult(id, type, label, meta, similarity) {
+      const el = document.getElementById(id);
+      el.className = 'result ' + type;
+      el.style.display = 'block';
+      el.innerHTML = `<div class="result-label">${label}</div>`;
+      if (meta) el.innerHTML += `<div class="result-meta">${meta}</div>`;
+      if (similarity !== undefined) {
+        const color = similarity > 50 ? '#2a7a2a' : '#a02020';
+        el.innerHTML += `<div class="meter"><div class="meter-fill" style="width:${similarity}%;background:${color}"></div></div>`;
+      }
+    }
+
+    async function enroll() {
+      const uid = document.getElementById('enroll-uid').value.trim();
+      const files = document.getElementById('enroll-files').files;
+      const btn = event.target;
+      if (!uid) return showResult('enroll-result', 'info', 'enter a user ID', '');
+      if (files.length < 2) return showResult('enroll-result', 'info', 'upload at least 2 signatures', '');
+
+      const form = new FormData();
+      form.append('user_id', uid);
+      for (const f of files) form.append('signatures', f);
+
+      btn.disabled = true; btn.textContent = 'enrolling...';
+      try {
+        const res = await fetch('/enroll', { method: 'POST', body: form });
+        const data = await res.json();
+        if (res.ok) showResult('enroll-result', 'ok', 'enrolled', `user: ${uid}  ·  signatures: ${data.signatures_stored}`);
+        else showResult('enroll-result', 'fail', 'error', data.error);
+      } catch { showResult('enroll-result', 'fail', 'request failed', ''); }
+      btn.disabled = false; btn.textContent = 'Enroll';
+    }
+
+    async function verify() {
+      const uid = document.getElementById('verify-uid').value.trim();
+      const file = document.getElementById('verify-file').files[0];
+      const btn = event.target;
+      if (!uid) return showResult('verify-result', 'info', 'enter a user ID', '');
+      if (!file) return showResult('verify-result', 'info', 'upload a signature image', '');
+
+      const form = new FormData();
+      form.append('user_id', uid);
+      form.append('signature', file);
+
+      btn.disabled = true; btn.textContent = 'verifying...';
+      try {
+        const res = await fetch('/verify', { method: 'POST', body: form });
+        const data = await res.json();
+        if (res.ok) {
+          const type = data.match ? 'ok' : 'fail';
+          const label = data.match ? 'genuine' : 'forged';
+          const meta = `similarity: ${data.similarity}%  ·  distance: ${data.avg_distance}  ·  threshold: ${data.threshold}`;
+          showResult('verify-result', type, label, meta, data.similarity);
+        } else {
+          showResult('verify-result', 'fail', 'error', data.error);
+        }
+      } catch { showResult('verify-result', 'fail', 'request failed', ''); }
+      btn.disabled = false; btn.textContent = 'Verify';
+    }
+
+    async function loadUsers() {
+      const el = document.getElementById('users-output');
+      try {
+        const res = await fetch('/users');
+        const data = await res.json();
+        if (data.enrolled_users.length === 0) {
+          el.innerHTML = '<span class="empty-msg">no users enrolled</span>';
+        } else {
+          el.innerHTML = data.enrolled_users.map(u => `<span class="user-tag">${u}</span>`).join('');
+        }
+      } catch { el.innerHTML = '<span class="empty-msg">failed to load</span>'; }
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>
